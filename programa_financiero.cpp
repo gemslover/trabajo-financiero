@@ -1,121 +1,173 @@
 #include <iostream>
-#include <cmath>   
-#include <iomanip>  
+#include <cmath>
+#include <iomanip>
+#include <vector>
 
 using namespace std;
 
 // Función para calcular el interés simple
-double interesSimple(double principal, double tasa, double tiempo) {
-    tasa /= 100;  // Convertimos el porcentaje a decimal
-    return principal * tasa * tiempo;
+double interesSimple(double capital, double tasa, int tiempo) {
+    return capital * tasa * tiempo;
 }
 
 // Función para calcular el interés compuesto
-double interesCompuesto(double principal, double tasa, double tiempo, int capitalizaciones) {
-    tasa /= 100;  // Convertimos el porcentaje a decimal
-    return principal * pow((1 + tasa / capitalizaciones), capitalizaciones * tiempo) - principal;
+double interesCompuesto(double capital, double tasa, int tiempo, int n) {
+    return capital * pow(1 + (tasa / n), n * tiempo);
 }
 
-// Función para calcular el gradiente aritmético
-double gradienteAritmetico(double flujoInicial, double incremento, double tasa, int periodos) {
-    tasa /= 100;  // Convertimos el porcentaje a decimal
-    return flujoInicial * (pow(1 + tasa, periodos) - 1) / tasa + incremento * (pow(1 + tasa, periodos) - tasa * periodos - 1) / (tasa * tasa);
+// Función para calcular el valor presente de un gradiente aritmético
+double gradienteAritmetico(double flujo, double incremento, double tasa, int n) {
+    return flujo / tasa * (1 - pow(1 + tasa, -n)) + incremento / (tasa * tasa) * (1 - pow(1 + tasa, -n) - n * pow(1 + tasa, -n));
 }
 
-// Función para calcular la amortización de un préstamo
-double amortizacion(double principal, double tasa, int periodos) {
-    tasa /= 100;  // Convertimos el porcentaje a decimal
-    return (principal * tasa) / (1 - pow(1 + tasa, -periodos));
+// Función para calcular los pagos de amortización usando el método francés
+double amortizacionFrancesa(double capital, double tasa, int periodos) {
+    return capital * (tasa / (1 - pow(1 + tasa, -periodos)));
+}
+
+// Función para calcular los pagos de amortización decreciente
+void amortizacionDecreciente(double capital, double tasa, int periodos) {
+    double cuotaCapital = capital / periodos;  // La parte fija de capital a pagar cada periodo
+    cout << "Amortización Decreciente:" << endl;
+    cout << "Periodo\tCuota de Interés\tCuota de Capital\tPago Total\n";
+    
+    for (int i = 1; i <= periodos; ++i) {
+        double cuotaInteres = (capital - cuotaCapital * (i - 1)) * tasa;  // Interés calculado sobre saldo pendiente
+        double pagoTotal = cuotaCapital + cuotaInteres;
+        cout << i << "\t" << fixed << setprecision(2) << cuotaInteres << "\t\t\t" << cuotaCapital << "\t\t\t" << pagoTotal << endl;
+    }
+}
+
+// Función para calcular la Tasa Interna de Retorno (TIR)
+double tasaInternaRetorno(const vector<double>& flujos) {
+    double tir = 0.1; // Valor inicial de TIR estimada
+    double incremento = 0.0001; // Precisión de cálculo
+    double npv = 0.0; // Valor neto presente
+    int maxIter = 10000; // Límite de iteraciones para evitar bucles infinitos
+
+    for (int iter = 0; iter < maxIter; ++iter) {
+        npv = 0.0;
+        for (size_t i = 0; i < flujos.size(); ++i) {
+            npv += flujos[i] / pow(1 + tir, i); // Calcula el NPV con la TIR estimada
+        }
+
+        if (fabs(npv) < 1e-5) break; // Detener si el NPV es cercano a cero
+
+        tir += (npv > 0 ? incremento : -incremento); // Ajuste de TIR si NPV es positivo o negativo
+    }
+
+    return tir * 100; // Devuelve la TIR en porcentaje
 }
 
 int main() {
-    cout << "******************************************************\n";
-    cout << "*            Bienvenido al Programa Financiero       *\n";
-    cout << "*     Calculadora de Interés, Gradientes y Amortización     *\n";
-    cout << "*                                                    *\n";
-    cout << "******************************************************\n\n";
-
     int opcion;
     bool continuar = true;
-
-    do {
-        cout << "\nSeleccione una opción para calcular:\n";
-        cout << "1. Interés Simple\n";
-        cout << "2. Interés Compuesto\n";
-        cout << "3. Gradiente Aritmético\n";
-        cout << "4. Amortización de un Préstamo\n";
-        cout << "5. Salir\n";
-        cout << "Ingrese su opción: ";
+    
+    cout << "Bienvenido al software de Cálculo Financiero en C++" << endl;
+    cout << "Esta herramienta le ayudará a realizar cálculos financieros básicos para analizar inversiones." << endl;
+    
+    while (continuar) {
+        cout << "\nSeleccione una opción de cálculo:" << endl;
+        cout << "1. Interés Simple" << endl;
+        cout << "2. Interés Compuesto" << endl;
+        cout << "3. Gradiente Aritmético" << endl;
+        cout << "4. Amortización (Sistema Francés)" << endl;
+        cout << "5. Amortización Decreciente" << endl;
+        cout << "6. Tasa Interna de Retorno (TIR)" << endl;
+        cout << "7. Salir" << endl;
+        cout << "Opción: ";
         cin >> opcion;
 
-        // Variables comunes a todas las opciones
-        double principal, tasa, tiempo;
-        int periodos, capitalizaciones;
-
         switch (opcion) {
-            case 1: // Interés Simple
-                cout << "Interés Simple\n";
+            case 1: {
+                double capital, tasa;
+                int tiempo;
                 cout << "Ingrese el capital inicial: ";
-                cin >> principal;
-                cout << "Ingrese la tasa de interés (%) (por ejemplo, 5 para 5%): ";
+                cin >> capital;
+                cout << "Ingrese la tasa de interés (en decimal): ";
                 cin >> tasa;
-                cout << "Ingrese el tiempo en años: ";
+                cout << "Ingrese el tiempo (en años): ";
                 cin >> tiempo;
-                cout << fixed << setprecision(2);  // Fijamos la precisión a dos decimales
-                cout << "El interés simple es: " << interesSimple(principal, tasa, tiempo) << " unidades monetarias.\n";
+                double resultado = interesSimple(capital, tasa, tiempo);
+                cout << "El interés simple es: " << fixed << setprecision(2) << resultado << endl;
                 break;
-            
-            case 2: // Interés Compuesto
-                cout << "Interés Compuesto\n";
+            }
+            case 2: {
+                double capital, tasa;
+                int tiempo, n;
                 cout << "Ingrese el capital inicial: ";
-                cin >> principal;
-                cout << "Ingrese la tasa de interés (%) (por ejemplo, 5 para 5%): ";
+                cin >> capital;
+                cout << "Ingrese la tasa de interés anual (en decimal): ";
                 cin >> tasa;
-                cout << "Ingrese el tiempo en años: ";
+                cout << "Ingrese el tiempo (en años): ";
                 cin >> tiempo;
                 cout << "Ingrese el número de capitalizaciones por año: ";
-                cin >> capitalizaciones;
-                cout << fixed << setprecision(2);
-                cout << "El interés compuesto es: " << interesCompuesto(principal, tasa, tiempo, capitalizaciones) << " unidades monetarias.\n";
+                cin >> n;
+                double resultado = interesCompuesto(capital, tasa, tiempo, n);
+                cout << "El monto con interés compuesto es: " << fixed << setprecision(2) << resultado << endl;
                 break;
-            
-            case 3: // Gradiente Aritmético
-                double flujoInicial, incremento;
-                cout << "Gradiente Aritmético\n";
+            }
+            case 3: {
+                double flujo, incremento, tasa;
+                int n;
                 cout << "Ingrese el flujo inicial: ";
-                cin >> flujoInicial;
-                cout << "Ingrese el incremento anual del flujo: ";
+                cin >> flujo;
+                cout << "Ingrese el incremento por período: ";
                 cin >> incremento;
-                cout << "Ingrese la tasa de interés (%) (por ejemplo, 5 para 5%): ";
+                cout << "Ingrese la tasa de interés (en decimal): ";
+                cin >> tasa;
+                cout << "Ingrese el número de períodos: ";
+                cin >> n;
+                double resultado = gradienteAritmetico(flujo, incremento, tasa, n);
+                cout << "El valor presente del gradiente aritmético es: " << fixed << setprecision(2) << resultado << endl;
+                break;
+            }
+            case 4: {
+                double capital, tasa;
+                int periodos;
+                cout << "Ingrese el capital a amortizar: ";
+                cin >> capital;
+                cout << "Ingrese la tasa de interés por periodo (en decimal): ";
                 cin >> tasa;
                 cout << "Ingrese el número de periodos: ";
                 cin >> periodos;
-                cout << fixed << setprecision(2);
-                cout << "El valor presente del gradiente aritmético es: " << gradienteAritmetico(flujoInicial, incremento, tasa, periodos) << " unidades monetarias.\n";
+                double pago = amortizacionFrancesa(capital, tasa, periodos);
+                cout << "El pago periódico en amortización francesa es: " << fixed << setprecision(2) << pago << endl;
                 break;
-            
-            case 4: // Amortización de un Préstamo
-                cout << "Amortización de un Préstamo\n";
-                cout << "Ingrese el monto del préstamo: ";
-                cin >> principal;
-                cout << "Ingrese la tasa de interés anual (%) (por ejemplo, 5 para 5%): ";
+            }
+            case 5: {
+                double capital, tasa;
+                int periodos;
+                cout << "Ingrese el capital a amortizar: ";
+                cin >> capital;
+                cout << "Ingrese la tasa de interés por periodo (en decimal): ";
                 cin >> tasa;
-                cout << "Ingrese el número de periodos (por ejemplo, meses): ";
+                cout << "Ingrese el número de periodos: ";
                 cin >> periodos;
-                cout << fixed << setprecision(2);
-                cout << "El pago periódico de amortización es: " << amortizacion(principal, tasa, periodos) << " unidades monetarias.\n";
+                amortizacionDecreciente(capital, tasa, periodos);
                 break;
-            
-            case 5: // Salir
-                cout << "Gracias por utilizar el programa. ¡Hasta luego!\n";
+            }
+            case 6: {
+                int n;
+                cout << "Ingrese el número de flujos de efectivo (incluyendo el valor negativo inicial): ";
+                cin >> n;
+                vector<double> flujos(n);
+                cout << "Ingrese los valores de los flujos de efectivo (negativo para la inversión inicial):" << endl;
+                for (int i = 0; i < n; ++i) {
+                    cout << "Flujo " << i + 1 << ": ";
+                    cin >> flujos[i];
+                }
+                double tir = tasaInternaRetorno(flujos);
+                cout << "La Tasa Interna de Retorno (TIR) es: " << fixed << setprecision(2) << tir << "%" << endl;
+                break;
+            }
+            case 7:
+                cout << "Gracias por utilizar el software de Cálculo Financiero. ¡Hasta luego!" << endl;
                 continuar = false;
                 break;
-            
             default:
-                cout << "Opción no válida. Intente de nuevo.\n";
+                cout << "Opción no válida. Por favor, intente nuevamente." << endl;
         }
-
-    } while (continuar);
-
+    }
     return 0;
 }
